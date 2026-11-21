@@ -78,7 +78,9 @@ public class CloseGroupUseCaseImpl implements CloseGroupUseCase {
         groupJpaRepository.save(group);
 
         for (GroupMemberEntity member : groupMemberJpaRepository.findByGroupId(groupId)) {
-            member.setRetainedGroupName(group.getName());
+            if (member.getRetainedGroupName() == null) {
+                member.setRetainedGroupName(group.getName());
+            }
             groupMemberJpaRepository.save(member);
         }
 

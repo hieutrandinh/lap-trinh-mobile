@@ -11,6 +11,7 @@ import lombok.experimental.FieldDefaults;
 import org.example.be.core.entity.RepaymentEntity;
 import org.example.be.core.exception.BusinessLogicException;
 import org.example.be.core.exception.ErrorCode;
+import org.example.be.core.util.JpaPagination;
 import org.example.be.rest.dto.req.repayment.RepaymentSearchReq;
 import org.example.be.rest.dto.res.common.PaginationRes;
 import org.example.be.rest.dto.res.repayment.RepaymentListRes;
@@ -19,7 +20,6 @@ import org.example.be.rest.usecase.group.support.GroupAccessService;
 import org.example.be.rest.usecase.repayment.SearchRepaymentUseCase;
 import org.example.be.rest.usecase.repayment.support.RepaymentResAssembler;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
@@ -61,7 +61,7 @@ public class SearchRepaymentUseCaseImpl implements SearchRepaymentUseCase {
         int page = Math.max(req.getPage(), 1);
         int pageSize = req.getPageSize() < 1 || req.getPageSize() > 100 ? 20 : req.getPageSize();
         Page<RepaymentEntity> result = repaymentJpaRepository.findAll(spec,
-                PageRequest.of(page - 1, pageSize, toSort(sort)));
+                JpaPagination.request(page, pageSize, toSort(sort)));
 
         return RepaymentListRes.builder()
                 .data(result.getContent().stream().map(repaymentResAssembler::toRes).toList())

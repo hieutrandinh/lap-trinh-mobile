@@ -6,6 +6,7 @@ import java.time.YearMonth;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -41,14 +42,13 @@ public class BucketQueryService {
         if (categoryIds == null || categoryIds.isEmpty()) {
             return List.of();
         }
-        Set<String> distinct = Set.copyOf(categoryIds);
-        if (distinct.size() != categoryIds.size()) {
+        if (categoryIds.stream().anyMatch(Objects::isNull) || Set.copyOf(categoryIds).size() != categoryIds.size()) {
             throw new BusinessLogicException(ErrorCode.VALIDATION_ERROR);
         }
         List<CategoryEntity> found = categoryJpaRepository.findAllById(categoryIds).stream()
                 .filter(c -> c.getUserId().equals(userId))
                 .toList();
-        if (found.size() != distinct.size()) {
+        if (found.size() != categoryIds.size()) {
             throw new BusinessLogicException(ErrorCode.CATEGORY_NOT_FOUND, Map.of("field", "categoryIds"));
         }
         return found.stream().map(CategoryEntity::getId).toList();

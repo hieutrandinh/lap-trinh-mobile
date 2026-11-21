@@ -12,21 +12,20 @@ import org.example.be.core.exception.BusinessLogicException;
 import org.example.be.core.exception.ErrorCode;
 import org.example.be.rest.dto.res.group.GroupRes;
 import org.example.be.rest.repository.GroupBalanceViewRepository;
+import org.example.be.rest.repository.GroupExpenseJpaRepository;
 import org.example.be.rest.repository.GroupMemberJpaRepository;
+import org.example.be.rest.usecase.expense.DetailGroupExpenseUseCase;
+import org.example.be.rest.usecase.group.DetailGroupUseCase;
 import org.example.be.rest.usecase.group.LeaveGroupUseCase;
 import org.example.be.rest.usecase.group.support.GroupAccessService;
 import org.example.be.rest.usecase.group.support.GroupActivityLogService;
 import org.example.be.rest.usecase.group.support.GroupResAssembler;
+import org.example.be.rest.usecase.group.support.GroupSnapshot;
 import org.example.be.rest.usecase.group.support.PendingActionsChecker;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * The snapshot only captures the balance for now: bills/splits/activity (9, 12) aren't
- * modeled as part of it yet, so there's nothing more to snapshot from them.
- * PENDING_ACTIONS_EXIST only checks repayments/reversals - pending corrections (11.x)
- * aren't modeled yet.
- */
 @Service
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
@@ -38,9 +37,13 @@ public class LeaveGroupUseCaseImpl implements LeaveGroupUseCase {
     GroupActivityLogService groupActivityLogService;
     GroupResAssembler groupResAssembler;
     PendingActionsChecker pendingActionsChecker;
+    GroupSnapshot groupSnapshot;
+    DetailGroupUseCase detailGroupUseCase;
+    DetailGroupExpenseUseCase detailGroupExpenseUseCase;
+    GroupExpenseJpaRepository groupExpenseJpaRepository;
 
     @Override
-    @Transactional
+    @Transactional(isolation = Isolation.REPEATABLE_READ)
     public GroupRes execute(String userId, String groupId) {
         GroupAccessService.Access access = groupAccessService.requireAccess(groupId, userId);
         GroupMemberEntity membership = access.membership();
@@ -63,10 +66,12 @@ public class LeaveGroupUseCaseImpl implements LeaveGroupUseCase {
         }
 
         LocalDateTime now = LocalDateTime.now();
-        String snapshot = "{\"balance\":\"" + balance.toPlainString() + "\",\"capturedAt\":\"" + now + "\","
-                + "\"note\":\"bills/splits/activity will be included once fully modeled\"}";
-
-        membership.setSnapshotData(snapshot);
+        GroupRes group = detailGroupUseCase.execute(userId, groupId);
+        group.setSnapshotCapturedAt(now);
+        var expenses = groupExpenseJpaRepository.findByGroupId(groupId).stream()
+                .map(expense -> detailGroupExpenseUseCase.execute(userId, groupId, expense.getId()))
+                .toList();
+        membership.setSnapshotData(groupSnapshot.write(group, expenses));
         membership.setSnapshotCapturedAt(now);
         membership.setStatus("left");
         membership.setLeftAt(now);

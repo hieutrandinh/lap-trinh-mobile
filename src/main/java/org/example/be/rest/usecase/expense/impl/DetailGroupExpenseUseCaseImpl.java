@@ -19,14 +19,10 @@ import org.example.be.rest.repository.GroupExpenseJpaRepository;
 import org.example.be.rest.usecase.expense.DetailGroupExpenseUseCase;
 import org.example.be.rest.usecase.expense.support.ExpenseResAssembler;
 import org.example.be.rest.usecase.group.support.GroupAccessService;
+import org.example.be.rest.usecase.group.support.GroupSnapshot;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * corrections and relatedRepayments are always empty until the correction/repayment
- * modules (10-11) exist. Snapshot replay has the same gap noted in
- * SearchGroupExpenseUseCaseImpl - this always reads live data.
- */
 @Service
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
@@ -38,11 +34,20 @@ public class DetailGroupExpenseUseCaseImpl implements DetailGroupExpenseUseCase 
     CategoryJpaRepository categoryJpaRepository;
     GroupAccessService groupAccessService;
     ExpenseResAssembler expenseResAssembler;
+    GroupSnapshot groupSnapshot;
 
     @Override
     @Transactional(readOnly = true)
     public GroupExpenseRes execute(String userId, String groupId, String expenseId) {
         var access = groupAccessService.requireAccess(groupId, userId);
+        if (groupSnapshot.appliesTo(access)) {
+            GroupExpenseRes snapshot = groupSnapshot.read(access).expenses().stream()
+                    .filter(expense -> expenseId.equals(expense.getId()))
+                    .findFirst()
+                    .orElseThrow(() -> new BusinessLogicException(ErrorCode.NOT_FOUND));
+            snapshot.setAccessMode(access.accessMode());
+            return snapshot;
+        }
         GroupExpenseEntity expense = groupExpenseJpaRepository.findByIdAndGroupId(expenseId, groupId)
                 .orElseThrow(() -> new BusinessLogicException(ErrorCode.NOT_FOUND));
 

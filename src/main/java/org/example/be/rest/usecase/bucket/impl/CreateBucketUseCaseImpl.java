@@ -79,7 +79,7 @@ public class CreateBucketUseCaseImpl implements CreateBucketUseCase {
         spendingBucketJpaRepository.save(bucket);
 
         if (!categoryIds.isEmpty()) {
-            bucketCategoryJpaRepository.saveAll(categoryIds.stream()
+            bucketCategoryJpaRepository.saveAllAndFlush(categoryIds.stream()
                     .map(categoryId -> new BucketCategoryEntity(bucket.getId(), categoryId))
                     .toList());
         }

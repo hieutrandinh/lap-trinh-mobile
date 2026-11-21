@@ -1,9 +1,12 @@
 package org.example.be.rest.dto.res.category;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import java.time.LocalDateTime;
 import java.util.List;
+import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Data;
+import lombok.Getter;
 import org.example.be.core.entity.CategoryEntity;
 
 @Data
@@ -12,6 +15,10 @@ public class CategoryRes {
 
     String id;
     String name;
+    // Putting @JsonProperty on the field only renamed the field-sourced property and left
+    // Jackson's getter-derived "system" property alongside it, so both appeared in the JSON.
+    // Annotating the getter itself is the one Jackson actually uses to serialize this value.
+    @Getter(onMethod_ = {@JsonProperty("isSystem")})
     boolean isSystem;
     long expenseCount;
     List<String> bucketIds;

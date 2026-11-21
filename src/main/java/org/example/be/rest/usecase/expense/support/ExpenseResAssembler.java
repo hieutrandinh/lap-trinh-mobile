@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.example.be.core.entity.CorrectionRequestEntity;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -14,6 +15,7 @@ import org.example.be.core.entity.UserEntity;
 import org.example.be.rest.dto.res.expense.GroupExpenseRes;
 import org.example.be.rest.dto.res.expense.SplitRes;
 import org.example.be.rest.dto.res.group.UserRefRes;
+import org.example.be.rest.repository.CorrectionRequestJpaRepository;
 import org.example.be.rest.repository.UserJpaRepository;
 import org.springframework.stereotype.Service;
 
@@ -23,6 +25,7 @@ import org.springframework.stereotype.Service;
 public class ExpenseResAssembler {
 
     UserJpaRepository userJpaRepository;
+    CorrectionRequestJpaRepository correctionRequestJpaRepository;
 
     /** List/create-response shape (9.2, 9.3): no accessMode/corrections/myEntry/relatedRepayments. */
     public GroupExpenseRes toRes(GroupExpenseEntity expense, List<ExpenseSplitEntity> splits, String callerId) {
@@ -57,7 +60,8 @@ public class ExpenseResAssembler {
                 .splits(splitRes)
                 .note(expense.getNote())
                 .status(expense.getStatus())
-                .pendingCorrectionId(null)
+                .pendingCorrectionId(correctionRequestJpaRepository.findByGroupExpenseIdAndStatus(expense.getId(), "pending")
+                        .map(CorrectionRequestEntity::getId).orElse(null))
                 .myShare(myShare)
                 .version(expense.getVersion())
                 .createdAt(expense.getCreatedAt())

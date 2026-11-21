@@ -42,7 +42,7 @@ public class SearchInvitationUseCaseImpl implements SearchInvitationUseCase {
 
         int page = Math.max(pageParam, 1);
         int pageSize = pageSizeParam < 1 || pageSizeParam > 100 ? 20 : pageSizeParam;
-        int fromIndex = Math.min((page - 1) * pageSize, all.size());
+        int fromIndex = (int) Math.min((page - 1L) * pageSize, all.size());
         int toIndex = Math.min(fromIndex + pageSize, all.size());
 
         int totalPages = pageSize == 0 ? 0 : (int) Math.ceil(all.size() / (double) pageSize);

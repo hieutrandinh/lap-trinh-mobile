@@ -17,15 +17,10 @@ import org.example.be.rest.repository.UserJpaRepository;
 import org.example.be.rest.usecase.group.DetailGroupUseCase;
 import org.example.be.rest.usecase.group.support.GroupAccessService;
 import org.example.be.rest.usecase.group.support.GroupResAssembler;
+import org.example.be.rest.usecase.group.support.GroupSnapshot;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * accessMode = snapshot should replay tblGroupMember.snapshotData (captured on leave,
- * 8.10) instead of live members - 8.10 isn't built yet so no snapshot ever exists and
- * this always falls back to the live member list. pendingActions/expenseCategories are
- * zero/empty until the repayment/reversal/correction and shared-expense modules exist.
- */
 @Service
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
@@ -35,11 +30,19 @@ public class DetailGroupUseCaseImpl implements DetailGroupUseCase {
     UserJpaRepository userJpaRepository;
     GroupAccessService groupAccessService;
     GroupResAssembler groupResAssembler;
+    GroupSnapshot groupSnapshot;
 
     @Override
     @Transactional(readOnly = true)
     public GroupRes execute(String userId, String groupId) {
         GroupAccessService.Access access = groupAccessService.requireAccess(groupId, userId);
+        if (groupSnapshot.appliesTo(access)) {
+            GroupRes snapshot = groupSnapshot.read(access).group();
+            snapshot.setAccessMode(access.accessMode());
+            snapshot.setStatus(access.group().getStatus());
+            snapshot.setClosedAt(access.group().getClosedAt());
+            return snapshot;
+        }
 
         List<GroupMemberEntity> activeMembers = groupMemberJpaRepository.findByGroupIdAndStatus(groupId, "active");
         Map<String, UserEntity> users = userJpaRepository

@@ -78,9 +78,18 @@ class BeApplicationTests {
         JsonNode updated = request(200, "GET", "/sync/changes?cursor=" + cursor, device, token, null, null);
         assertThat(updated.at("/upserts/entries/0/amount").asText()).isEqualTo("5.00");
 
+        String staleDelete = """
+                {"changes":[{"recordType":"entry","recordId":"%s","operation":"delete","baseVersion":1}]}
+                """.formatted(entry);
+        JsonNode conflict = request(200, "POST", "/sync/push", device, token, "stale-delete", staleDelete);
+        assertThat(conflict.at("/results/0/status").asText()).isEqualTo("discarded_conflict");
+        assertThat(conflict.at("/results/0/version").asInt()).isEqualTo(2);
+
         request(204, "DELETE", "/entries/" + entry + "?version=2", device, token, null, null);
         JsonNode deletion = request(200, "GET", "/sync/changes?cursor=" + updated.path("nextCursor").asText(), device, token, null, null);
         assertThat(deletion.at("/deletions/0/recordId").asText()).isEqualTo(entry);
+        JsonNode attemptAfterDeletion = request(200, "POST", "/sync/push", device, token, "push-after-delete", push);
+        assertThat(attemptAfterDeletion.at("/results/1/status").asText()).isEqualTo("discarded_deleted");
 
         String bucket = """
                 {"id":"%s","name":"Food budget","monthlyTarget":"50.00","categoryIds":["%s"]}

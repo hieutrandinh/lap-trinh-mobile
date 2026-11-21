@@ -64,7 +64,7 @@ public class SearchGroupUseCaseImpl implements SearchGroupUseCase {
 
         int page = Math.max(req.getPage(), 1);
         int pageSize = req.getPageSize() < 1 || req.getPageSize() > 100 ? 20 : req.getPageSize();
-        int fromIndex = Math.min((page - 1) * pageSize, all.size());
+        int fromIndex = (int) Math.min((page - 1L) * pageSize, all.size());
         int toIndex = Math.min(fromIndex + pageSize, all.size());
         List<GroupRes> pageData = all.subList(fromIndex, toIndex);
 

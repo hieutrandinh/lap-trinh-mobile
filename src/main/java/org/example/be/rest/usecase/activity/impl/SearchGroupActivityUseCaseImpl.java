@@ -37,7 +37,7 @@ public class SearchGroupActivityUseCaseImpl implements SearchGroupActivityUseCas
                 ? req.getFrom().withOffsetSameInstant(ZoneOffset.UTC).toLocalDateTime() : null;
         LocalDateTime to = req.getTo() != null
                 ? req.getTo().withOffsetSameInstant(ZoneOffset.UTC).toLocalDateTime() : null;
-        LocalDateTime snapshotCutoff = "snapshot".equals(access.accessMode())
+        LocalDateTime snapshotCutoff = "left".equals(access.membership().getStatus())
                 ? access.membership().getSnapshotCapturedAt() : null;
 
         List<GroupActivityEntity> filtered = groupActivityJpaRepository
@@ -52,7 +52,7 @@ public class SearchGroupActivityUseCaseImpl implements SearchGroupActivityUseCas
 
         int page = Math.max(req.getPage(), 1);
         int pageSize = req.getPageSize() < 1 || req.getPageSize() > 100 ? 20 : req.getPageSize();
-        int from_ = Math.min((page - 1) * pageSize, filtered.size());
+        int from_ = (int) Math.min((page - 1L) * pageSize, filtered.size());
         int to_ = Math.min(from_ + pageSize, filtered.size());
 
         List<GroupActivityRes> data = filtered.subList(from_, to_).stream()

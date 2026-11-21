@@ -12,6 +12,7 @@ import org.example.be.rest.dto.res.bucket.BucketRes;
 import org.example.be.rest.dto.res.report.GroupSummaryRes;
 import org.example.be.rest.dto.res.report.OverviewRes;
 import org.example.be.rest.repository.EntryDetailViewRepository;
+import org.example.be.rest.repository.GroupBalanceViewRepository;
 import org.example.be.rest.repository.SpendingBucketJpaRepository;
 import org.example.be.rest.repository.UserJpaRepository;
 import org.example.be.rest.usecase.bucket.support.BucketQueryService;
@@ -19,10 +20,6 @@ import org.example.be.rest.usecase.report.ReportOverviewUseCase;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * groupSummary is zero/empty until the Groups module (section 8-11) exists:
- * youOwe/youAreOwed/groups need vGroupBalance, which has no data source yet.
- */
 @Service
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
@@ -32,6 +29,7 @@ public class ReportOverviewUseCaseImpl implements ReportOverviewUseCase {
     EntryDetailViewRepository entryDetailViewRepository;
     SpendingBucketJpaRepository spendingBucketJpaRepository;
     BucketQueryService bucketQueryService;
+    GroupBalanceViewRepository groupBalanceViewRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -47,6 +45,16 @@ public class ReportOverviewUseCaseImpl implements ReportOverviewUseCase {
         var buckets = spendingBucketJpaRepository.findByUserIdOrderByNameAsc(userId).stream()
                 .map(bucket -> toBucketRes(userId, bucket, month, from, to))
                 .toList();
+        var groupBalances = groupBalanceViewRepository.findVisibleActiveGroupBalances(userId);
+        BigDecimal youOwe = BigDecimal.ZERO;
+        BigDecimal youAreOwed = BigDecimal.ZERO;
+        for (var group : groupBalances) {
+            if (group.getBalance().signum() < 0) {
+                youOwe = youOwe.subtract(group.getBalance());
+            } else {
+                youAreOwed = youAreOwed.add(group.getBalance());
+            }
+        }
 
         return OverviewRes.builder()
                 .month(month.toString())
@@ -55,9 +63,9 @@ public class ReportOverviewUseCaseImpl implements ReportOverviewUseCase {
                 .monthlySpending(spending)
                 .buckets(buckets)
                 .groupSummary(GroupSummaryRes.builder()
-                        .youOwe(BigDecimal.ZERO)
-                        .youAreOwed(BigDecimal.ZERO)
-                        .groups(java.util.List.of())
+                        .youOwe(youOwe)
+                        .youAreOwed(youAreOwed)
+                        .groups(groupBalances)
                         .build())
                 .build();
     }

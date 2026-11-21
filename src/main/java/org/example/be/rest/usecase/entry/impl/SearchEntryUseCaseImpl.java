@@ -12,6 +12,7 @@ import lombok.experimental.FieldDefaults;
 import org.example.be.core.entity.EntryDetailView;
 import org.example.be.core.exception.BusinessLogicException;
 import org.example.be.core.exception.ErrorCode;
+import org.example.be.core.util.JpaPagination;
 import org.example.be.core.util.MonthUtil;
 import org.example.be.rest.dto.req.entry.EntrySearchReq;
 import org.example.be.rest.dto.res.common.PaginationRes;
@@ -22,7 +23,6 @@ import org.example.be.rest.usecase.entry.SearchEntryUseCase;
 import org.example.be.rest.usecase.entry.support.EntryQueryService;
 import org.example.be.rest.usecase.entry.support.EntrySpecifications;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
@@ -77,7 +77,7 @@ public class SearchEntryUseCaseImpl implements SearchEntryUseCase {
 
         Sort sortSpec = toSort(sort);
         Page<EntryDetailView> result = entryDetailViewRepository.findAll(spec,
-                PageRequest.of(page - 1, pageSize, sortSpec));
+                JpaPagination.request(page, pageSize, sortSpec));
 
         List<EntryDetailView> all = entryDetailViewRepository.findAll(spec);
         BigDecimal income = sumByType(all, "income");

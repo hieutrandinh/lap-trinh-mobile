@@ -4,6 +4,7 @@ import jakarta.persistence.criteria.Predicate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import org.example.be.core.entity.CorrectionRequestEntity;
 import org.example.be.core.entity.GroupExpenseEntity;
 import org.springframework.data.jpa.domain.Specification;
 
@@ -14,7 +15,7 @@ public final class ExpenseSpecifications {
 
     public static Specification<GroupExpenseEntity> build(String groupId, String category, String payerUserId,
                                                             String status, LocalDateTime from, LocalDateTime to,
-                                                            List<String> idsIn) {
+                                                            List<String> idsIn, Boolean hasPendingCorrection) {
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
             predicates.add(cb.equal(root.get("groupId"), groupId));
@@ -35,6 +36,14 @@ public final class ExpenseSpecifications {
             }
             if (idsIn != null) {
                 predicates.add(idsIn.isEmpty() ? cb.disjunction() : root.get("id").in(idsIn));
+            }
+            if (hasPendingCorrection != null) {
+                var pending = query.subquery(Integer.class);
+                var correction = pending.from(CorrectionRequestEntity.class);
+                pending.select(cb.literal(1)).where(cb.equal(correction.get("groupExpenseId"), root.get("id")),
+                        cb.equal(correction.get("status"), "pending"));
+                var exists = cb.exists(pending);
+                predicates.add(hasPendingCorrection ? exists : cb.not(exists));
             }
             return cb.and(predicates.toArray(new Predicate[0]));
         };

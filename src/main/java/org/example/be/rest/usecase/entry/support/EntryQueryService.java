@@ -88,7 +88,7 @@ public class EntryQueryService {
                 .category(categoryRef)
                 .bucket(bucketRef)
                 .note(view.getNote())
-                .isShared(view.isShared())
+                .sharedFlag(view.isShared())
                 .shared(sharedRef)
                 .version(view.getVersion())
                 .createdAt(view.getCreatedAt())

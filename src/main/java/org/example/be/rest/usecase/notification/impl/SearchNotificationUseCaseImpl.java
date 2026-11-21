@@ -32,7 +32,7 @@ public class SearchNotificationUseCaseImpl implements SearchNotificationUseCase 
 
         int page = Math.max(req.getPage(), 1);
         int pageSize = req.getPageSize() < 1 || req.getPageSize() > 100 ? 20 : req.getPageSize();
-        int from = Math.min((page - 1) * pageSize, all.size());
+        int from = (int) Math.min((page - 1L) * pageSize, all.size());
         int to = Math.min(from + pageSize, all.size());
 
         List<NotificationRes> data = all.subList(from, to).stream()

@@ -74,7 +74,7 @@ public class SearchCorrectionUseCaseImpl implements SearchCorrectionUseCase {
 
         int page = Math.max(req.getPage(), 1);
         int pageSize = req.getPageSize() < 1 || req.getPageSize() > 100 ? 20 : req.getPageSize();
-        int from = Math.min((page - 1) * pageSize, filtered.size());
+        int from = (int) Math.min((page - 1L) * pageSize, filtered.size());
         int to = Math.min(from + pageSize, filtered.size());
 
         List<CorrectionRequestRes> data = filtered.subList(from, to).stream()

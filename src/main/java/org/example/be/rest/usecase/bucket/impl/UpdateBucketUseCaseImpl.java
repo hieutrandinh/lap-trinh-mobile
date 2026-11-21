@@ -85,7 +85,7 @@ public class UpdateBucketUseCaseImpl implements UpdateBucketUseCase {
             entryJpaRepository.clearBucketForCategories(userId, bucketId, toRemove, now);
         }
         if (!toAdd.isEmpty()) {
-            bucketCategoryJpaRepository.saveAll(toAdd.stream()
+            bucketCategoryJpaRepository.saveAllAndFlush(toAdd.stream()
                     .map(categoryId -> new BucketCategoryEntity(bucketId, categoryId))
                     .toList());
             List<String> entryIds = entryDetailViewRepository.findUnbucketedExpenseIds(userId, toAdd, from, to);
